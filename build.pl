@@ -39,7 +39,7 @@ sub main() {
 
     my $action = $opts{'a'} || 'build';
     if ($action eq 'build') {
-        my $jar = $Xposed::cfg->val('General', 'outdir') . '/java/XposedBridge.jar';
+        my $jar = $Xposed::cfg->val('General', 'outdir') . '/java/ZposedBridge.jar';
         if (!-r $jar) {
             print_error("$jar doesn't exist or isn't readable");
             exit 1;
@@ -66,7 +66,7 @@ sub main() {
             all_in_one($target->{'platform'}, $target->{'sdk'}, !$opts{'v'}) || exit 1;
         }
     } elsif ($action eq 'java') {
-        # Build XposedBridge.jar
+        # Build ZposedBridge.jar
         build_java() || exit 1;
     } elsif ($action eq 'prunelogs') {
         # Remove old logs
@@ -97,7 +97,7 @@ Usage: $0 [-v] [-i] [-f] [-a <action>][-t <targets>] [-s <steps>] [-r]
 
 Possible actions are:
   build       Builds the native executables and libraries.
-  java        Builds the Java part (XposedBridge).
+  java        Builds the Java part (ZposedBridge).
   prunelogs   Removes logs which are older than 24 hours.
 
 Format of <targets> is: <platform>:<sdk>[/<platform2>:<sdk2>/...]
@@ -178,7 +178,7 @@ sub compile($$;$) {
     if ($sdk < 21) {
         push @targets, qw/libxposed_dalvik/;
     } else {
-        push @targets, qw/libxposed_art/;
+        push @targets, qw/libzposed_art/;
         push @targets, qw/libart libart-compiler libart-disassembler libsigchain/;
         push @targets, qw/dex2oat oatdump patchoat/;
         push @makefiles, qw(art/Android.mk);
@@ -259,7 +259,7 @@ sub get_compiled_files($$) {
     } else {
         $files{$_} = $_ foreach qw(
             /system/bin/app_process32_xposed
-            /system/lib/libxposed_art.so
+            /system/lib/libzposed_art.so
 
             /system/lib/libart.so
             /system/lib/libart-compiler.so
@@ -277,7 +277,7 @@ sub get_compiled_files($$) {
 
             $files{$_} = $_ foreach qw(
                 /system/bin/app_process64_xposed
-                /system/lib64/libxposed_art.so
+                /system/lib64/libzposed_art.so
 
                 /system/lib64/libart.so
                 /system/lib64/libart-disassembler.so
@@ -363,7 +363,7 @@ sub create_zip($$) {
     make_path($coldir);
     $zip->addTree($coldir . '/files/', '') == AZ_OK || return 0;
     $zip->addDirectory('system/framework/') || return 0;
-    $zip->addFile("$outdir/java/XposedBridge.jar", 'system/framework/XposedBridge.jar') || return 0;
+    $zip->addFile("$outdir/java/ZposedBridge.jar", 'system/framework/ZposedBridge.jar') || return 0;
     # TODO: We probably need different files for older releases
     $zip->addTree($Bin . '/zipstatic/_all/', '') == AZ_OK || return 0;
     $zip->addTree($Bin . '/zipstatic/' . $platform . '/', '') == AZ_OK || return 0;
@@ -436,7 +436,7 @@ sub gpg_sign($$) {
     return Xposed::gpg_sign($zippath);
 }
 
-# Build XposedBridge.jar
+# Build ZposedBridge.jar
 sub build_java() {
     print_status('Building the Java part...', 0);
     my $javadir = $Xposed::cfg->val('General', 'javadir');
@@ -450,12 +450,12 @@ sub build_java() {
     system('./gradlew app:assembleRelease lint') == 0 || return 0;
     print "\n";
 
-    print_status('Copying APK to XposedBridge.jar...', 1);
+    print_status('Copying APK to ZposedBridge.jar...', 1);
     my $base = $javadir . '/app/build/outputs/apk/app-release';
     foreach my $suffix ('.apk', '-unaligned.apk', '-unsigned.apk') {
         my $file = $base . $suffix;
         if (-f $file) {
-            my $target = $Xposed::cfg->val('General', 'outdir') . '/java/XposedBridge.jar';
+            my $target = $Xposed::cfg->val('General', 'outdir') . '/java/ZposedBridge.jar';
             print "$file => $target\n";
             make_path(dirname($target));
             if (!copy($file, $target)) {
